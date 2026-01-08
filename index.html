@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Double Pendy</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --stageBorder: rgba(255,255,255,0.15);
+      --panel: rgba(16,16,16,0.92);
+      --panel2: rgba(22,22,22,0.92);
+      --text: #f3f3f3;
+      --accent: #00ffff;
+      --pink: #ff3366;
+      --btn: #1266cc;
+      --btn2: #3a3a3a;
+      --btnDrop: #00b300;
+      --btnPause: #ff8800;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      overscroll-behavior: none;
+      overflow-x: hidden;
+    }
+
+    .app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .header {
+      text-align: center;
+      padding: 16px 10px 8px;
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--accent);
+      text-shadow: 0 0 20px rgba(0,255,255,0.4);
+      letter-spacing: 1px;
+    }
+
+    .stageWrap {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 0 10px 6px;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      height: min(65dvh, 580px);
+      border: 1px solid var(--stageBorder);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 10px 35px rgba(0,255,255,0.14);
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    #trail { display: none; }
+
+    .controls {
+      margin-top: 14px;
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+      background: var(--btn);
+      min-width: 110px;
+      cursor: pointer;
+    }
+
+    button.drop { background: var(--btnDrop); font-size: 17px; }
+    button.pause { background: var(--btnPause); }
+    button.secondary { background: var(--btn2); font-weight: 600; }
+
+    .panel {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .panelTitle {
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .panelText {
+      font-size: 13px;
+      color: rgba(255,255,255,0.86);
+      line-height: 1.5;
+    }
+
+    .sliders {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .sliderBox {
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .sliderBox.fullWidth {
+      grid-column: 1 / -1;
+    }
+
+    .sliderHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .sliderLabel {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .sliderValue {
+      font-size: 12px;
+      color: rgba(255,255,255,0.78);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 34px;
+      background: transparent;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 8px;
+      background: rgba(255,255,255,0.16);
+      border-radius: 999px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: -7px;
+      border: 2px solid rgba(0,0,0,0.4);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 8px;
+      background: rgba(255,255,255,0.16);
+      border-radius: 999px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid rgba(0,0,0,0.4);
+    }
+
+    .gravityMarks {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-top: 4px;
+      font-size: 9px;
+      color: rgba(255,255,255,0.5);
+      padding: 0 2px;
+      position: relative;
+    }
+
+    .gravityMark {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      flex: 0 0 auto;
+    }
+
+    .gravityMark.moon { position: absolute; left: 6.5%; }
+    .gravityMark.mars { position: absolute; left: 15%; }
+    .gravityMark.earth { position: absolute; left: 37.5%; color: rgba(0,255,255,0.9); font-weight: 700; }
+    .gravityMark.jupiter { position: absolute; left: 98%; transform: translateX(-100%); }
+
+    .markLine {
+      width: 1px;
+      height: 6px;
+      background: currentColor;
+      margin-bottom: 2px;
+    }
+
+    @media (min-width: 520px) {
+      .sliders { grid-template-columns: 1fr 1fr; }
+      .gravityMarks { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">Double Pendy!</div>
+    
+    <div class="stageWrap">
+      <div class="stage" id="stage">
+        <canvas id="trail"></canvas>
+        <canvas id="main"></canvas>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="row">
+        <button class="drop" id="dropBtn">DROP</button>
+        <button class="pause" id="pauseBtn">PAUSE</button>
+        <button id="resetBtn">Reset</button>
+        <button class="secondary" id="trailToggle">Trail: ON</button>
+      </div>
+
+      <div class="panel">
+        <div class="panelTitle">Instructions</div>
+        <div class="panelText">
+          Drag the <b style="color:#ff3366">RED</b> or <b style="color:#00ffff">BLUE</b> bob independently to set custom starting positions. String lengths adjust automatically. Tap <b>DROP</b> to release. Use <b>PAUSE</b> to freeze motion.
+        </div>
+
+        <div class="sliders">
+          <div class="sliderBox fullWidth">
+            <div class="sliderHeader">
+              <div class="sliderLabel">Gravity</div>
+              <div class="sliderValue" id="gVal">9.81 m/s²</div>
+            </div>
+            <input type="range" id="gSlider" min="0.5" max="25" step="0.1" value="9.81" />
+            <div class="gravityMarks">
+              <div class="gravityMark moon">
+                <div class="markLine"></div>
+                <div>Moon<br>1.62</div>
+              </div>
+              <div class="gravityMark mars">
+                <div class="markLine"></div>
+                <div>Mars<br>3.71</div>
+              </div>
+              <div class="gravityMark earth">
+                <div class="markLine"></div>
+                <div>Earth<br>9.81</div>
+              </div>
+              <div class="gravityMark jupiter">
+                <div class="markLine"></div>
+                <div>Jupiter<br>24.79</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sliderBox">
+            <div class="sliderHeader">
+              <div class="sliderLabel">Trail Length</div>
+              <div class="sliderValue" id="tVal">1200 pts</div>
+            </div>
+            <input type="range" id="tSlider" min="50" max="2000" step="50" value="1200" />
+          </div>
+
+          <div class="sliderBox">
+            <div class="sliderHeader">
+              <div class="sliderLabel">Trail Brightness</div>
+              <div class="sliderValue" id="bVal">50%</div>
+            </div>
+            <input type="range" id="bSlider" min="0" max="100" step="1" value="50" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const stageEl = document.getElementById('stage');
+    const trailCanvas = document.getElementById('trail');
+    const mainCanvas = document.getElementById('main');
+    const trailCtx = trailCanvas.getContext('2d', { alpha: true });
+    const ctx = mainCanvas.getContext('2d', { alpha: true });
+
+    const dropBtn = document.getElementById('dropBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const trailToggle = document.getElementById('trailToggle');
+    const gSlider = document.getElementById('gSlider');
+    const gVal = document.getElementById('gVal');
+    const tSlider = document.getElementById('tSlider');
+    const tVal = document.getElementById('tVal');
+    const bSlider = document.getElementById('bSlider');
+    const bVal = document.getElementById('bVal');
+
+    const EARTH_G = 9.81;
+    const m1 = 0.1, m2 = 0.1;
+    let g = EARTH_G;
+    
+    // Initial positions: both bobs toward top-right at 45° from vertical
+    // 45° from vertical means: x increases right, y increases down
+    // So for top-right: positive x, negative y
+    const INIT_ANGLE = Math.PI / 4; // 45° from vertical
+    const INIT_L1 = 0.28;
+    const INIT_L2 = 0.28;
+    
+    // Bob1 position (RED): L1 distance at 45° angle toward top-right
+    let bob1X = INIT_L1 * Math.sin(INIT_ANGLE);   // positive (right)
+    let bob1Y = -INIT_L1 * Math.cos(INIT_ANGLE);  // negative (up)
+    
+    // Bob2 position (BLUE): L2 distance further in same direction from Bob1
+    let bob2X = bob1X + INIT_L2 * Math.sin(INIT_ANGLE);   // further right
+    let bob2Y = bob1Y - INIT_L2 * Math.cos(INIT_ANGLE);   // further up
+    
+    let omega1 = 0, omega2 = 0;
+
+    const dt = 0.016;
+    const damping = 0.9995;
+
+    let showTrail = true;
+    let maxTrailLength = 1200;
+    let trailBrightness = 50.0;
+    let lastTrailWorld = null;
+
+    let cssW = 0, cssH = 0, dpr = 1, trailDpr = 1;
+    let scale = 100;
+    let originX = 0, originY = 0;
+
+    let isPaused = true;
+    let isDragging = false;
+    let dragTarget = null;
+    let dragStartBob1X = 0, dragStartBob1Y = 0; // Store bob1 position when dragging bob2
+    let dragStartBob2X = 0, dragStartBob2Y = 0; // Store bob2 position when dragging bob1
+    let dragLockScale = 1, dragLockOriginX = 0, dragLockOriginY = 0; // Lock scale during drag
+
+    function worldToScreen(wx, wy) {
+      const s = isDragging ? dragLockScale : scale;
+      const ox = isDragging ? dragLockOriginX : originX;
+      const oy = isDragging ? dragLockOriginY : originY;
+      return {
+        x: ox + wx * s,
+        y: oy + wy * s
+      };
+    }
+
+    function screenToWorld(sx, sy) {
+      const s = isDragging ? dragLockScale : scale;
+      const ox = isDragging ? dragLockOriginX : originX;
+      const oy = isDragging ? dragLockOriginY : originY;
+      return {
+        x: (sx - ox) / s,
+        y: (sy - oy) / s
+      };
+    }
+
+    function updateScale() {
+      const maxX = Math.max(Math.abs(bob1X), Math.abs(bob2X));
+      const maxY = Math.max(Math.abs(bob1Y), Math.abs(bob2Y));
+      const maxDist = Math.max(maxX, maxY, Math.hypot(bob1X, bob1Y) + Math.hypot(bob2X - bob1X, bob2Y - bob1Y));
+      
+      const marginX = cssW * 0.15;
+      const marginY = cssH * 0.15;
+      const availW = cssW - marginX;
+      const availH = cssH - marginY;
+      
+      const scaleX = availW / (maxDist * 2);
+      const scaleY = availH / (maxDist * 2);
+      scale = Math.min(scaleX, scaleY, 150);
+      
+      originX = cssW / 2;
+      originY = cssH / 2;
+    }
+
+    function resizeStage() {
+      const rect = stageEl.getBoundingClientRect();
+      cssW = Math.max(1, Math.round(rect.width));
+      cssH = Math.max(1, Math.round(rect.height));
+
+      dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      trailDpr = 1;
+
+      mainCanvas.width = Math.round(cssW * dpr);
+      mainCanvas.height = Math.round(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      trailCanvas.width = Math.round(cssW * trailDpr);
+      trailCanvas.height = Math.round(cssH * trailDpr);
+      trailCtx.setTransform(trailDpr, 0, 0, trailDpr, 0, 0);
+
+      updateScale();
+      trailCtx.clearRect(0, 0, cssW, cssH);
+      lastTrailWorld = null;
+    }
+
+    new ResizeObserver(() => resizeStage()).observe(stageEl);
+
+    function bobsToAngles() {
+      const L1 = Math.hypot(bob1X, bob1Y);
+      const theta1 = Math.atan2(bob1X, bob1Y);
+      
+      const dx = bob2X - bob1X;
+      const dy = bob2Y - bob1Y;
+      const L2 = Math.hypot(dx, dy);
+      const theta2 = Math.atan2(dx, dy);
+      
+      return { theta1, theta2, L1, L2 };
+    }
+
+    function anglesToBobs(theta1, theta2, L1, L2) {
+      bob1X = L1 * Math.sin(theta1);
+      bob1Y = L1 * Math.cos(theta1);
+      bob2X = bob1X + L2 * Math.sin(theta2);
+      bob2Y = bob1Y + L2 * Math.cos(theta2);
+    }
+
+    function derivatives(th1, th2, om1, om2, L1, L2) {
+      if (!isFinite(th1) || !isFinite(th2) || !isFinite(om1) || !isFinite(om2)) return [0,0,0,0];
+      if (L1 <= 0 || L2 <= 0) return [0,0,0,0];
+
+      const dth1 = om1;
+      const dth2 = om2;
+      const c = Math.cos(th1 - th2);
+      const s = Math.sin(th1 - th2);
+
+      const n1 = -g * (2*m1 + m2) * Math.sin(th1) - m2*g*Math.sin(th1 - 2*th2) - 2*s*m2*(om2*om2*L2 + om1*om1*L1*c);
+      const d1 = L1 * (2*m1 + m2 - m2*Math.cos(2*th1 - 2*th2));
+      const dom1 = Math.abs(d1) > 1e-6 ? n1/d1 : 0;
+
+      const n2 = 2*s*(om1*om1*L1*(m1+m2) + g*(m1+m2)*Math.cos(th1) + om2*om2*L2*m2*c);
+      const d2 = L2 * (2*m1 + m2 - m2*Math.cos(2*th1 - 2*th2));
+      const dom2 = Math.abs(d2) > 1e-6 ? n2/d2 : 0;
+
+      return [dth1, dth2, dom1, dom2];
+    }
+
+    function integrate() {
+      const { theta1, theta2, L1, L2 } = bobsToAngles();
+      
+      const k1 = derivatives(theta1, theta2, omega1, omega2, L1, L2);
+      const k2 = derivatives(theta1 + 0.5*dt*k1[0], theta2 + 0.5*dt*k1[1], omega1 + 0.5*dt*k1[2], omega2 + 0.5*dt*k1[3], L1, L2);
+      const k3 = derivatives(theta1 + 0.5*dt*k2[0], theta2 + 0.5*dt*k2[1], omega1 + 0.5*dt*k2[2], omega2 + 0.5*dt*k2[3], L1, L2);
+      const k4 = derivatives(theta1 + dt*k3[0], theta2 + dt*k3[1], omega1 + dt*k3[2], omega2 + dt*k3[3], L1, L2);
+
+      const newT1 = theta1 + (dt/6) * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]);
+      const newT2 = theta2 + (dt/6) * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]);
+      const newO1 = omega1 + (dt/6) * (k1[2] + 2*k2[2] + 2*k3[2] + k4[2]);
+      const newO2 = omega2 + (dt/6) * (k1[3] + 2*k2[3] + 2*k3[3] + k4[3]);
+
+      if (isFinite(newT1) && isFinite(newT2) && isFinite(newO1) && isFinite(newO2)) {
+        anglesToBobs(newT1, newT2, L1, L2);
+        omega1 = newO1 * damping;
+        omega2 = newO2 * damping;
+        updateScale();
+      }
+    }
+
+    function fadeTrail() {
+      if (!showTrail) return;
+      
+      // Map "Trail Length" slider into a fade rate. Larger value = slower fade (longer trail).
+      const lenFactor = Math.max(0.2, maxTrailLength / 500);
+      
+      // Slower fade to keep trail visible longer
+      const eraseAlpha = Math.max(0.005, 0.15 / lenFactor);
+      
+      trailCtx.save();
+      trailCtx.globalCompositeOperation = 'destination-out';
+      trailCtx.fillStyle = `rgba(0,0,0,${eraseAlpha})`;
+      trailCtx.fillRect(0, 0, cssW, cssH);
+      trailCtx.restore();
+    }
+
+    function stampTrailSegment(prev, curr) {
+      const a = worldToScreen(prev.x, prev.y);
+      const b = worldToScreen(curr.x, curr.y);
+      
+      // Trail width is same as bob diameter (16px bob radius = 32px diameter)
+      const bobDiameter = 32;
+      const trailWidth = bobDiameter;
+      
+      // Brightness now 0-100, map to 0-1 alpha
+      const alpha = Math.max(0.1, Math.min(1.0, trailBrightness / 100));
+
+      trailCtx.save();
+      trailCtx.globalCompositeOperation = 'source-over';
+      trailCtx.lineCap = 'round';
+      trailCtx.lineJoin = 'round';
+      trailCtx.beginPath();
+      trailCtx.moveTo(a.x, a.y);
+      trailCtx.lineTo(b.x, b.y);
+      
+      // Outer glow
+      trailCtx.strokeStyle = `rgba(0,255,255,${alpha * 0.5})`;
+      trailCtx.lineWidth = trailWidth * 1.5;
+      trailCtx.stroke();
+      
+      // Core bright line
+      trailCtx.strokeStyle = `rgba(0,255,255,${alpha})`;
+      trailCtx.lineWidth = trailWidth * 0.8;
+      trailCtx.stroke();
+      
+      trailCtx.restore();
+    }
+
+    function drawSystem() {
+      const p1 = worldToScreen(bob1X, bob1Y);
+      const p2 = worldToScreen(bob2X, bob2Y);
+
+      // Draw trail BEFORE checking pause/drag - we need to track position
+      if (showTrail && !isPaused && !isDragging) {
+        const curr = { x: bob2X, y: bob2Y };
+        if (lastTrailWorld) {
+          stampTrailSegment(lastTrailWorld, curr);
+        }
+        lastTrailWorld = curr;
+      } else if (isPaused || isDragging) {
+        lastTrailWorld = null;
+      }
+
+      // Draw background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, cssH);
+      grad.addColorStop(0, 'rgba(0,0,0,1)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.9)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, cssW, cssH);
+
+      // Composite the trail AFTER background but BEFORE pendulum
+      if (showTrail) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 1.0;
+        ctx.drawImage(trailCanvas, 0, 0, cssW, cssH);
+        ctx.restore();
+      }
+
+      // Draw pendulum links
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(originX, originY);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+
+      // Draw pivot
+      ctx.fillStyle = 'rgba(180,180,180,0.85)';
+      ctx.beginPath();
+      ctx.arc(originX, originY, 7, 0, Math.PI*2);
+      ctx.fill();
+
+      // Draw bob1 (RED)
+      ctx.fillStyle = 'rgba(255,51,102,0.92)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, 16, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Draw bob2 (BLUE)
+      ctx.fillStyle = 'rgba(0,255,255,0.92)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p2.x, p2.y, 16, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function frame() {
+      if (!isPaused && !isDragging) integrate();
+      fadeTrail();
+      ctx.clearRect(0, 0, cssW, cssH);
+      drawSystem();
+      requestAnimationFrame(frame);
+    }
+
+    function pickBob(lx, ly) {
+      const p1 = worldToScreen(bob1X, bob1Y);
+      const p2 = worldToScreen(bob2X, bob2Y);
+      const r = 20;
+      const d1 = (lx - p1.x)**2 + (ly - p1.y)**2;
+      const d2 = (lx - p2.x)**2 + (ly - p2.y)**2;
+      if (d2 <= r*r) return 'bob2';
+      if (d1 <= r*r) return 'bob1';
+      return null;
+    }
+
+    function beginDrag(picked) {
+      isDragging = true;
+      dragTarget = picked;
+      isPaused = true;
+      omega1 = 0;
+      omega2 = 0;
+      trailCtx.clearRect(0, 0, cssW, cssH);
+      lastTrailWorld = null;
+      
+      // Lock the current scale and origin so the view doesn't change during drag
+      dragLockScale = scale;
+      dragLockOriginX = originX;
+      dragLockOriginY = originY;
+      
+      // Store both bob positions at the start of drag
+      if (dragTarget === 'bob1') {
+        dragStartBob2X = bob2X;
+        dragStartBob2Y = bob2Y;
+      } else if (dragTarget === 'bob2') {
+        dragStartBob1X = bob1X;
+        dragStartBob1Y = bob1Y;
+      }
+    }
+
+    function applyDrag(w) {
+      if (!isFinite(w.x) || !isFinite(w.y)) return;
+      
+      if (dragTarget === 'bob1') {
+        // Move RED bob to new position
+        bob1X = w.x;
+        bob1Y = w.y;
+        // Keep BLUE bob at its locked position
+        bob2X = dragStartBob2X;
+        bob2Y = dragStartBob2Y;
+      } else if (dragTarget === 'bob2') {
+        // Keep RED bob at its locked position
+        bob1X = dragStartBob1X;
+        bob1Y = dragStartBob1Y;
+        // Move BLUE bob to new position
+        bob2X = w.x;
+        bob2Y = w.y;
+      }
+      
+      // Don't call updateScale during drag - we're using locked values
+    }
+
+    function endDrag() {
+      isDragging = false;
+      dragTarget = null;
+      // Now update scale based on the new bob positions
+      updateScale();
+    }
+
+    function pointerToLocal(cx, cy) {
+      const r = mainCanvas.getBoundingClientRect();
+      return {
+        x: (cx - r.left) * (cssW / r.width),
+        y: (cy - r.top) * (cssH / r.height)
+      };
+    }
+
+    mainCanvas.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      if (e.button !== 0) return;
+      const { x, y } = pointerToLocal(e.clientX, e.clientY);
+      const picked = pickBob(x, y);
+      if (picked) {
+        mainCanvas.setPointerCapture?.(e.pointerId);
+        beginDrag(picked);
+      }
+    });
+
+    window.addEventListener('pointermove', e => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const { x, y } = pointerToLocal(e.clientX, e.clientY);
+      applyDrag(screenToWorld(x, y));
+    });
+
+    window.addEventListener('pointerup', e => {
+      if (!isDragging) return;
+      e.preventDefault();
+      endDrag();
+    });
+
+    mainCanvas.addEventListener('touchstart', e => {
+      if (!e.touches || e.touches.length !== 1) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      const { x, y } = pointerToLocal(t.clientX, t.clientY);
+      const picked = pickBob(x, y);
+      if (picked) beginDrag(picked);
+    }, { passive: false });
+
+    mainCanvas.addEventListener('touchmove', e => {
+      if (!isDragging || !e.touches || e.touches.length !== 1) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      const { x, y } = pointerToLocal(t.clientX, t.clientY);
+      applyDrag(screenToWorld(x, y));
+    }, { passive: false });
+
+    mainCanvas.addEventListener('touchend', e => {
+      if (!isDragging) return;
+      e.preventDefault();
+      endDrag();
+    }, { passive: false });
+
+    dropBtn.addEventListener('click', () => { isPaused = false; });
+    
+    pauseBtn.addEventListener('click', () => { 
+      isPaused = !isPaused;
+      pauseBtn.textContent = isPaused ? 'RESUME' : 'PAUSE';
+    });
+
+    resetBtn.addEventListener('click', () => {
+      bob1X = INIT_L1 * Math.sin(INIT_ANGLE);
+      bob1Y = -INIT_L1 * Math.cos(INIT_ANGLE);
+      bob2X = bob1X + INIT_L2 * Math.sin(INIT_ANGLE);
+      bob2Y = bob1Y - INIT_L2 * Math.cos(INIT_ANGLE);
+      omega1 = 0;
+      omega2 = 0;
+      isPaused = true;
+      pauseBtn.textContent = 'PAUSE';
+      trailCtx.clearRect(0, 0, cssW, cssH);
+      lastTrailWorld = null;
+      updateScale();
+    });
+
+    trailToggle.addEventListener('click', () => {
+      showTrail = !showTrail;
+      trailToggle.textContent = showTrail ? 'Trail: ON' : 'Trail: OFF';
+      trailCtx.clearRect(0, 0, cssW, cssH);
+      lastTrailWorld = null;
+    });
+
+    gSlider.addEventListener('input', e => {
+      g = Number(e.target.value);
+      gVal.textContent = `${g.toFixed(2)} m/s²`;
+    });
+
+    tSlider.addEventListener('input', e => {
+      maxTrailLength = Number(e.target.value);
+      tVal.textContent = `${maxTrailLength} pts`;
+    });
+
+    bSlider.addEventListener('input', e => {
+      trailBrightness = Number(e.target.value);
+      bVal.textContent = `${Math.round(trailBrightness)}%`;
+    });
+
+    resizeStage();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
