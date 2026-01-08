@@ -1,0 +1,2 @@
+Enjoy this dropping this double pendulum and bask in the chaotic motion. You can use the sliders to adjust various settings such as gravity, or just drop it using the default settings (Earth gravity). 
+Feel free to adjust the initial placement of the bobs by clicking and dragging them. The app will automatically adjust the strings lengths connecting the bobs so neither of them leave the screen window after you drop them.
